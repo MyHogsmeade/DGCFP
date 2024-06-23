@@ -1,8 +1,5 @@
 # Maxillofacial Bone Movements-Aware Dual Graph Convolution Approach for Postoperative Facial Appearance Prediction
-This is the source code of DGCFP, a postoperative facial appearance prediction model, in orthognathic surgery planning. 
-
-## Time to Open
-This paper is under review recently. When our work is published, the organized code will be released.
+This is the repository of DGCFP, a postoperative facial appearance prediction model, for the orthognathic surgery planning. 
 
 ## Project Dependencies
 Here are some important packages.
@@ -21,7 +18,7 @@ Preparing data.
 
 Please prepairing cropped 3D facial and bony models from paired preoperative and postoperative CT scans of patients following the instructions provided in the paper.
 All files need to be organized into a proper file structure.
-Here is our file structure.
+Here is our directory structure.
 ```
 |-/original_data_dir
 |--/patient_id

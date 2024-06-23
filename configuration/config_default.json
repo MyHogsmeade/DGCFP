@@ -1,0 +1,86 @@
+{
+    "model_name": "DGCFP",
+    "usegpu": 1,
+    "model": "",
+    "data_config": {
+        "datadir": "../../Datasets/XXXX/",
+        "origin_dir": "../../Datasets/XXXX",
+        "outf": "./log/XXXX",
+        "k_fold_start":0,
+        "k_fold":5,
+        "start_level": 0,
+        "end_level": 5,
+        "test_samples": 2
+    },
+    "train_transform": [
+        {
+            "type": "RadiusNeighbors",
+            "args": {
+              "radius": [0.1, 0.2, 0.4, 0.8, 0.9],
+              "max_neigh": 64
+            }
+        },
+        {
+            "type": "EdgeSampling",
+            "args": {
+              "alpha": 1.0,
+              "cutoff": 10
+            }
+        }
+    ],
+    "test_transform": [
+        {
+            "type": "RadiusNeighbors",
+            "args": {
+              "radius": [0.1, 0.2, 0.4, 0.8, 0.9],
+              "max_neigh": 64
+            }
+        },
+        {
+            "type": "EdgeSampling",
+            "args": {
+              "alpha": 1.0,
+              "cutoff": 10
+            }
+        }
+    ],
+    "arch": {
+        "npoint": 4096,
+        "range_max": 0.5,
+        "topk": 8,
+        "beta": 0.3,
+        "lambda": 0.1,
+        "is_bn": 1,
+        "feature_number": 6,
+        "use_normal": 1,
+        "num_propagation_steps": 2,
+        "geo_filter": [64,64,64,64,64],
+        "euc_filter": [64,64,64,64,64],
+        "pooling_method": "mean",
+        "aggr": "mean",
+        "nsample": 64,
+        "be_radius": [0.1,0.2,0.4,0.8],
+        "be_mlp": [[64, 128],[128, 256],[256, 512],[512, 1024]],
+        "bd_mlp": [[512, 512],[256, 256],[128, 128],[128, 128]],
+        "bv_dim": 6,
+        "selfatt_dim": 64,
+        "is_bias": 1,
+        "s2_out_dim": 64,
+        "is_dropout": 0,
+        "dp_rate": 0.5,
+        "out_mlp_s1": [128, 64],
+        "out_mlp_s2": [128, 64]
+    },
+    "training_config": {
+        "batch_size": 10,
+        "epoch": 200,
+        "lr": 0.001,
+        "min_lr": 0.0001,
+        "step_size": 100,
+        "save_interval": 20,
+        "manualSeed": 12345
+    },
+    "inference": {
+        "predict_dir": "predict_default"
+    }
+}
