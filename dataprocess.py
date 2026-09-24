@@ -486,7 +486,8 @@ def mp_generate_dataset(N, sample_times, kfold, test_samples, sample_method, lev
     _ = list(pool.map(handle_process, patients, repeat(N), repeat(sample_times), repeat(sample_method),
                       repeat(base_dir), repeat(target_dir), repeat(cell_num), repeat(unpool_num),
                       repeat(level_params), repeat(simplify_type), repeat(use_normal)))
-
+    
+    
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_base', type=str, default='../../Datasets/XXXX/', help='original data path')

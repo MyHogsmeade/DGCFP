@@ -160,11 +160,15 @@ def mp_reconstruct_crop_rigion(model='DGCFP',
     if use_all:
         patients = os.listdir(origin_dir)
     p = Pool(len(patients))
+    result_list = []
     for i in range(len(patients)):
-        p.apply_async(reconstruct_crop_rigion, args=(model,K,dataset_dir,origin_dir,target_dir,test_samples,
-                                                     [patients[i]],False,show_process,))
+        result_list.append(p.apply_async(reconstruct_crop_rigion, args=(model,K,dataset_dir,origin_dir,target_dir,test_samples,
+                                                     [patients[i]],False,show_process,)))
     p.close()
     p.join()
+    # re-raise worker exceptions instead of silently swallowing them
+    for item in result_list:
+        item.get()
 
 def get_landmark_error(model='DGCFP',
                        dataset_dir = '../../Datasets/XXXX',

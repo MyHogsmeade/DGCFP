@@ -135,7 +135,7 @@ class GraphLevelBatch(pyg.data.Batch):
 
     @staticmethod
     def from_graph_data_list(data_list, follow_batch=[]):
-        keys = [set(data.keys) for data in data_list]
+        keys = [set(data.keys()) for data in data_list]
         keys = list(set.union(*keys))
         assert 'batch' not in keys
         batch = pyg.data.Batch()
@@ -151,7 +151,7 @@ class GraphLevelBatch(pyg.data.Batch):
             num_nodes = data.num_nodes
             num_nodes_s2 = data['lap_stage_2'].shape[0]
             batch.batch.append(torch.full((num_nodes, ), i, dtype=torch.long))
-            for key in data.keys:
+            for key in data.keys():
                 item = data[key]
                 if 'hierarchy' in key:
                     level = int(key[-1]) - 1

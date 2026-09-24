@@ -1,0 +1,9 @@
+# paper and generated artifacts
+paper/
+mock_data/
+mock_dp/
+log/
+results/
+__pycache__/
+*.pyc
+wandb/

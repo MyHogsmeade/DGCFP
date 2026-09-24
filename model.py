@@ -10,10 +10,17 @@ from torch_geometric.nn.conv import MessagePassing
 import torch_geometric.nn.conv.edge_conv as edge
 from torch.autograd import Variable
 from torchsummary import summary
-import chamfer
+try:
+    import chamfer
+    HAS_CHAMFER_EXT = True
+except ImportError:
+    HAS_CHAMFER_EXT = False   # fall back to a pure PyTorch implementation
 from torch.autograd import Function
-from sklearn.neighbors import BallTree
-from pytorch3d.ops import knn_points
+try:
+    from pytorch3d.ops import knn_points
+    HAS_KNN_P3D = True
+except ImportError:
+    HAS_KNN_P3D = False       # fall back to torch.cdist top-k
 
 def check_nan(value):
     cpu_value = value.detach().cpu().numpy()
@@ -707,7 +714,7 @@ class ChamferFunction(Function):
 
         chamfer.forward(xyz1, xyz2, dist1, dist2, idx1, idx2)
         ctx.save_for_backward(xyz1, xyz2, idx1, idx2)
-        
+
         return dist1, dist2, idx1, idx2
 
     @staticmethod
@@ -722,7 +729,7 @@ class ChamferFunction(Function):
         gradxyz1 = gradxyz1.cuda()
         gradxyz2 = gradxyz2.cuda()
         chamfer.backward(xyz1, xyz2, gradxyz1, gradxyz2, graddist1, graddist2, idx1, idx2)
-        
+
         return gradxyz1, gradxyz2
 
 class ChamferDist(nn.Module):
@@ -731,6 +738,29 @@ class ChamferDist(nn.Module):
 
     def forward(self, input1, input2):
         return ChamferFunction.apply(input1, input2)
+
+if not HAS_CHAMFER_EXT:
+    # Pure PyTorch fallback when the compiled `chamfer` CUDA extension is
+    # unavailable. Differentiable on both CPU and GPU.
+    class ChamferDist(nn.Module):
+        def __init__(self):
+            super(ChamferDist, self).__init__()
+
+        def forward(self, input1, input2):
+            '''
+            Inputs:
+                input1: (bs, n, 3)
+                input2: (bs, m, 3)
+            Outputs:
+                dist1: (bs, n) squared distance from input1 to its nearest neighbor in input2
+                dist2: (bs, m) squared distance from input2 to its nearest neighbor in input1
+                idx1:  (bs, n) nearest neighbor indices in input2
+                idx2:  (bs, m) nearest neighbor indices in input1
+            '''
+            dist_mat = torch.cdist(input1, input2, p=2) ** 2
+            dist1, idx1 = dist_mat.min(dim=2)
+            dist2, idx2 = dist_mat.min(dim=1)
+            return dist1, dist2, idx1, idx2
 
 class GeometricLoss(nn.Module):
     def __init__(self, top_k, density_weight):
@@ -760,8 +790,17 @@ class GeometricLoss(nn.Module):
             cur_target = torch.unsqueeze(split_target[bid], dim=0)
             dist1, dist2, idx1, idx2 = self.chamfer_dist(cur_pre, cur_target)
             shape_loss += (torch.mean(dist1) + torch.mean(dist2))
-            dist_tar_pre = torch.squeeze(knn_points(cur_target,cur_pre,K=self.top_k)[0],0)
-            dist_tar_tar = torch.squeeze(knn_points(cur_target,cur_target,K=self.top_k)[0],0)
+            if HAS_KNN_P3D:
+                dist_tar_pre = torch.squeeze(knn_points(cur_target,cur_pre,K=self.top_k)[0],0)
+                dist_tar_tar = torch.squeeze(knn_points(cur_target,cur_target,K=self.top_k)[0],0)
+            else:
+                # pure PyTorch fallback: squared kNN distances via cdist (same
+                # semantics as pytorch3d.ops.knn_points, which also returns
+                # squared distances)
+                dist_mat = torch.cdist(cur_target, cur_pre, p=2) ** 2
+                dist_tar_pre = dist_mat.topk(self.top_k, dim=2, largest=False)[0]
+                dist_mat = torch.cdist(cur_target, cur_target, p=2) ** 2
+                dist_tar_tar = dist_mat.topk(self.top_k, dim=2, largest=False)[0]
             density_loss += torch.mean(torch.abs(dist_tar_pre - dist_tar_tar))
         shape_loss = shape_loss / B
         density_loss = density_loss / B

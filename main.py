@@ -39,7 +39,10 @@ def seed_torch(seed=12345):
 
 def parse_args():
     parser = argparse.ArgumentParser('DGCFP')
-    parser.add_argument('--is_train', default=True, action='store_true', help='train model or inference')
+    parser.add_argument('--is_train', dest='is_train', action='store_true', default=True,
+                        help='train model or inference')
+    parser.add_argument('--is_test', dest='is_train', action='store_false',
+                        help='run inference instead of training')
     parser.add_argument('--config', type=str, default='./configuration/config_default.json', help='config file path')
     return parser.parse_args()
 
@@ -88,6 +91,8 @@ def train_model(config, fold_id, run=None, is_recons=True):
                                end_level=config["data_config"]["end_level"],
                                split='train',
                                fold_id=fold_id,
+                               include_edges=True,
+                               get_coords=True,
                                transform=transf_train)
     train_dataloader = GraphLevelDataLoader(train_dataset,
                                             batch_size=config["training_config"]["batch_size"],
@@ -100,6 +105,8 @@ def train_model(config, fold_id, run=None, is_recons=True):
                                end_level=config["data_config"]["end_level"],
                                split='valid',
                                fold_id=fold_id,
+                               include_edges=True,
+                               get_coords=True,
                                transform=transf_train)
     valid_dataloader = GraphLevelDataLoader(valid_dataset,
                                             batch_size=1,
@@ -352,6 +359,8 @@ def test_model(config, fold_id, check=False, target_dir='predict'):
                               end_level=config["data_config"]["end_level"],
                               split='test',
                               fold_id=fold_id,
+                              include_edges=True,
+                              get_coords=True,
                               transform=transf_test)
     test_dataloader = GraphLevelDataLoader(test_dataset,
                                            batch_size=1,
@@ -430,9 +439,11 @@ def test_model(config, fold_id, check=False, target_dir='predict'):
         if bool(config["usegpu"]):
             pred_dis_s1 = pred_dis_s1.cpu().detach().numpy()
             pred_dis_s2 = pred_dis_s2.cpu().detach().numpy()
+            coords_s2 = coords_s2.cpu().detach().numpy()
         else:
             pred_dis_s1 = pred_dis_s1.detach().numpy()
             pred_dis_s2 = pred_dis_s2.detach().numpy()
+            coords_s2 = coords_s2.detach().numpy()
         displacement = [pred_dis_s1, pred_dis_s2, coords_s2]
         # save
         pat_dir = os.path.join(test_dataset.datapath[j], target_dir)
